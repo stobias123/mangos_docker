@@ -1,0 +1,55 @@
+FROM ubuntu:18.04 as builder
+
+## 
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y git \
+        cmake \
+        autoconf \
+        automake \
+        libssl-dev \
+        libbz2-dev \
+        build-essential \
+        libmysqlclient-dev \
+        libace-6.4.5 \
+        libace-dev \
+        screen \
+        libtool \
+        git
+#COPY files/mysql-apt-config.deb /tmp/mysql-apt-config.deb
+#RUN dpkg -i /tmp/mysql-apt-config.deb
+RUN apt-get -y upgrade
+
+#FROM ubuntu:18.04 as compiler
+
+WORKDIR /opt/mangos
+RUN git clone --recursive --depth=1  https://github.com/mangoszero/server.git
+WORKDIR /opt/mangos
+RUN git clone --recursive --depth=1  https://github.com/mangoszero/database.git
+
+## compile
+WORKDIR /opt/mangos/server/build
+RUN cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local/bin/mangos \
+             -DSOAP=ON \
+             -DSCRIPT_LIB_ELUNA=ON \
+             -DBUILD_TOOLS=FALSE
+RUN make -j$(nproc)
+RUN make install
+
+
+
+FROM ubuntu:18.04
+
+RUN mkdir /etc/mangos
+
+COPY --from=builder /usr/local/bin/mangos/bin/mangosd /usr/local/bin/mangosd
+COPY --from=builder /usr/local/bin/etc/ /etc/mangos/
+RUN apt-get update && apt-get install -y \
+        libssl-dev \
+        libbz2-dev \
+        libmysqlclient-dev \
+        libace-6.4.5 \
+        libace-dev \
+        libtool
+
+ENTRYPOINT [ "/usr/local/bin/mangosd" ]
+CMD [ "-c", "/etc/mangos/mangosd.conf.dist" ]

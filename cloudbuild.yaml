@@ -1,0 +1,13 @@
+steps:
+- name: 'gcr.io/kaniko-project/executor:latest'
+  args:
+    - --dockerfile=/Dockerfile.realmd
+    - --destination=gcr.io/$PROJECT_ID/mangos-realmd:latest
+    - --cache=true
+    - --cache-ttl=12h
+  timeout: "45m"
+images:
+- 'gcr.io/$PROJECT_ID/mangos-realmd:latest'
+options:
+  machineType: 'N1_HIGHCPU_32'
+timeout: "45m"
